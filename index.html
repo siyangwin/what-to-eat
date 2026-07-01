@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>午饭吃什么转盘</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      color: #333;
+    }
+
+    h1 {
+      color: #fff;
+      font-size: 2em;
+      margin-bottom: 20px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+
+    .container {
+      display: flex;
+      gap: 30px;
+      flex-wrap: wrap;
+      justify-content: center;
+      max-width: 1200px;
+      width: 100%;
+    }
+
+    /* 面板 */
+    .panel {
+      background: #fff;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+      flex: 1;
+      min-width: 280px;
+      max-width: 360px;
+      width: 340px;
+    }
+
+    .panel h2 {
+      font-size: 1.2em;
+      margin-bottom: 16px;
+      color: #555;
+      border-bottom: 2px solid #667eea;
+      padding-bottom: 8px;
+    }
+
+    /* 店铺选择 */
+    .shop-actions {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .shop-actions button {
+      flex: 1;
+      padding: 6px 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      background: #f5f5f5;
+      cursor: pointer;
+      font-size: 0.85em;
+      transition: all 0.2s;
+    }
+
+    .shop-actions button:hover {
+      background: #667eea;
+      color: #fff;
+      border-color: #667eea;
+    }
+
+    .shop-list {
+      max-height: 260px;
+      overflow-y: auto;
+      border: 1px solid #eee;
+      border-radius: 8px;
+      padding: 8px;
+    }
+
+    .shop-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .shop-item:hover {
+      background: #f0f0ff;
+    }
+
+    .shop-item input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: #667eea;
+      cursor: pointer;
+    }
+
+    .shop-item label {
+      cursor: pointer;
+      font-size: 0.95em;
+      flex: 1;
+    }
+
+    .shop-item .count {
+      background: #667eea;
+      color: #fff;
+      border-radius: 10px;
+      padding: 2px 8px;
+      font-size: 0.75em;
+    }
+
+    /* 当前菜单预览 */
+    .menu-preview {
+      max-height: 180px;
+      overflow-y: auto;
+      border: 1px solid #eee;
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 0.85em;
+      color: #666;
+      line-height: 1.8;
+    }
+
+    .menu-preview .tag {
+      display: inline-block;
+      background: #eef;
+      color: #667eea;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin: 2px;
+      font-size: 0.9em;
+    }
+
+    .menu-preview .tag .price {
+      color: #ff4757;
+      font-weight: bold;
+      margin-left: 2px;
+    }
+
+    /* 转盘区域 */
+    .wheel-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .wheel-wrapper {
+      position: relative;
+      width: 420px;
+      height: 420px;
+    }
+
+    canvas {
+      width: 420px;
+      height: 420px;
+      filter: drop-shadow(0 8px 20px rgba(0,0,0,0.25));
+    }
+
+    /* 指针 */
+    .pointer {
+      position: absolute;
+      top: -14px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 16px solid transparent;
+      border-right: 16px solid transparent;
+      border-top: 30px solid #ff4757;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+      z-index: 10;
+    }
+
+    .pointer::after {
+      content: '';
+      position: absolute;
+      top: -34px;
+      left: -8px;
+      width: 16px;
+      height: 16px;
+      background: #ff4757;
+      border-radius: 50%;
+    }
+
+    /* 中心按钮 */
+    .center-btn {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #ff6b81, #ff4757);
+      color: #fff;
+      font-size: 1.1em;
+      font-weight: bold;
+      border: 4px solid #fff;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(255,71,87,0.5);
+      z-index: 10;
+      transition: transform 0.15s, box-shadow 0.15s;
+      letter-spacing: 2px;
+    }
+
+    .center-btn:hover {
+      transform: translate(-50%, -50%) scale(1.08);
+      box-shadow: 0 6px 20px rgba(255,71,87,0.6);
+    }
+
+    .center-btn:active {
+      transform: translate(-50%, -50%) scale(0.95);
+    }
+
+    .center-btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    /* 结果展示 */
+    .result {
+      margin-top: 20px;
+      min-height: 50px;
+      text-align: center;
+    }
+
+    .result-text {
+      font-size: 1.4em;
+      color: #fff;
+      font-weight: bold;
+      text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+      animation: none;
+    }
+
+    .result-price {
+      font-size: 1em;
+      color: #ffe066;
+      margin-top: 4px;
+    }
+
+    .result-text.show {
+      animation: popIn 0.5s ease-out;
+    }
+
+    @keyframes popIn {
+      0% { transform: scale(0); opacity: 0; }
+      60% { transform: scale(1.2); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* 右侧: 最近记录 */
+    .history-list {
+      max-height: 500px;
+      overflow-y: auto;
+    }
+
+    .history-item {
+      display: flex;
+      align-items: center;
+      padding: 10px;
+      border-bottom: 1px solid #f0f0f0;
+      gap: 10px;
+    }
+
+    .history-item:last-child {
+      border-bottom: none;
+    }
+
+    .history-num {
+      background: #667eea;
+      color: #fff;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8em;
+      flex-shrink: 0;
+    }
+
+    .history-dish {
+      font-weight: 500;
+      flex: 1;
+    }
+
+    .history-price {
+      color: #ff4757;
+      font-weight: bold;
+      font-size: 0.9em;
+      white-space: nowrap;
+    }
+
+    .history-shop {
+      font-size: 0.8em;
+      color: #999;
+    }
+
+    .clear-btn {
+      margin-top: 12px;
+      width: 100%;
+      padding: 8px;
+      border: 1px dashed #ccc;
+      border-radius: 8px;
+      background: transparent;
+      color: #999;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .clear-btn:hover {
+      border-color: #ff4757;
+      color: #ff4757;
+    }
+
+    /* 空状态 */
+    .empty {
+      color: #ccc;
+      text-align: center;
+      padding: 40px 0;
+      font-style: italic;
+    }
+
+    /* 加载状态 */
+    .loading {
+      color: #999;
+      text-align: center;
+      padding: 20px;
+    }
+
+    /* 响应式 */
+    @media (max-width: 900px) {
+      .container {
+        flex-direction: column;
+        align-items: center;
+      }
+      .panel {
+        width: 100%;
+        max-width: 100%;
+        min-width: auto;
+      }
+      .wheel-wrapper { width: 320px; height: 320px; }
+      canvas { width: 320px; height: 320px; }
+      .center-btn { width: 64px; height: 64px; font-size: 0.95em; }
+    }
+  </style>
+</head>
+<body>
+  <h1>今天吃什么？</h1>
+
+  <div class="container">
+    <!-- 左侧: 店铺选择 -->
+    <div class="panel">
+      <h2>选择店铺</h2>
+      <div class="shop-actions">
+        <button onclick="selectAll()">全选</button>
+        <button onclick="selectNone()">全不选</button>
+      </div>
+      <div class="shop-list" id="shopList">
+        <div class="loading">加载菜单中...</div>
+      </div>
+
+      <h2 style="margin-top: 20px;">当前菜单 <span id="menuCount" style="font-weight:normal;color:#999;font-size:0.85em;"></span></h2>
+      <div class="menu-preview" id="menuPreview">
+        <div class="empty">请至少选择一个店铺</div>
+      </div>
+    </div>
+
+    <!-- 中间: 转盘 -->
+    <div class="wheel-section">
+      <div class="wheel-wrapper">
+        <canvas id="wheelCanvas" width="840" height="840"></canvas>
+        <div class="pointer"></div>
+        <button class="center-btn" id="spinBtn" onclick="spin()" disabled>开始</button>
+      </div>
+      <div class="result">
+        <div class="result-text" id="resultText"></div>
+        <div class="result-price" id="resultPrice"></div>
+      </div>
+    </div>
+
+    <!-- 右侧: 历史记录 -->
+    <div class="panel">
+      <h2>抽签记录</h2>
+      <div class="history-list" id="historyList">
+        <div class="empty">还没有记录，快来试试吧！</div>
+      </div>
+      <button class="clear-btn" onclick="clearHistory()">清空记录</button>
+    </div>
+  </div>
+
+  <script>
+    // ============ 数据 ============
+    let shopData = [];
+    let selectedShops = [];
+    let currentItems = [];    // { dish, shop, price }
+    let history = [];
+    let isSpinning = false;
+    let currentAngle = 0;
+
+    const canvas = document.getElementById('wheelCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // ============ 颜色 ============
+    const COLORS = [
+      '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
+      '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9',
+      '#F8C471', '#82E0AA', '#F1948A', '#AED6F1', '#D5DBDB',
+      '#A3E4D7', '#FAD7A0', '#D2B4DE', '#A9CCE3', '#D4EFDF'
+    ];
+
+    // ============ 加载菜单 ============
+    async function loadMenu() {
+      try {
+        const resp = await fetch('menu.json?t=' + Date.now());
+        if (!resp.ok) throw new Error('无法加载菜单文件');
+        const data = await resp.json();
+        shopData = data.shops || [];
+        renderShopList();
+      } catch (e) {
+        document.getElementById('shopList').innerHTML =
+          '<div class="loading" style="color:#ff4757;">菜单加载失败，请确保 menu.json 在同目录下<br>错误: ' + e.message + '</div>';
+      }
+    }
+
+    // ============ 渲染店铺列表 ============
+    function renderShopList() {
+      const el = document.getElementById('shopList');
+      if (shopData.length === 0) {
+        el.innerHTML = '<div class="empty">菜单为空</div>';
+        return;
+      }
+
+      el.innerHTML = shopData.map((shop, i) => {
+        const totalPrice = shop.items.reduce((sum, it) => sum + (it.price || 0), 0);
+        const avgPrice = Math.round(totalPrice / shop.items.length);
+        return `
+          <div class="shop-item" onclick="toggleShop('${shop.name}')">
+            <input type="checkbox" id="shop_${i}" data-name="${shop.name}" />
+            <label for="shop_${i}">${shop.name}</label>
+            <span class="count">${shop.items.length}道 · 均${avgPrice}元</span>
+          </div>
+        `;
+      }).join('');
+
+      selectAll();
+    }
+
+    // ============ 店铺选择逻辑 ============
+    function toggleShop(name) {
+      const idx = selectedShops.indexOf(name);
+      if (idx === -1) {
+        selectedShops.push(name);
+      } else {
+        selectedShops.splice(idx, 1);
+      }
+      syncCheckboxes();
+      updateMenu();
+    }
+
+    function selectAll() {
+      selectedShops = shopData.map(s => s.name);
+      syncCheckboxes();
+      updateMenu();
+    }
+
+    function selectNone() {
+      selectedShops = [];
+      syncCheckboxes();
+      updateMenu();
+    }
+
+    function syncCheckboxes() {
+      document.querySelectorAll('#shopList input[type="checkbox"]').forEach(cb => {
+        cb.checked = selectedShops.includes(cb.dataset.name);
+      });
+    }
+
+    // ============ 更新菜单预览 & 转盘数据 ============
+    function updateMenu() {
+      currentItems = [];
+      shopData.forEach(shop => {
+        if (selectedShops.includes(shop.name)) {
+          shop.items.forEach(item => {
+            currentItems.push({
+              dish: item.name,
+              shop: shop.name,
+              price: item.price || 0
+            });
+          });
+        }
+      });
+
+      const preview = document.getElementById('menuPreview');
+      const countEl = document.getElementById('menuCount');
+
+      if (currentItems.length === 0) {
+        preview.innerHTML = '<div class="empty">请至少选择一个店铺</div>';
+        countEl.textContent = '';
+        document.getElementById('spinBtn').disabled = true;
+      } else {
+        const shopGroups = {};
+        currentItems.forEach(item => {
+          if (!shopGroups[item.shop]) shopGroups[item.shop] = [];
+          shopGroups[item.shop].push(item);
+        });
+
+        let html = '';
+        let totalEstimate = 0;
+        for (const [shop, dishes] of Object.entries(shopGroups)) {
+          html += `<div style="margin-bottom:6px;"><b>${shop}</b>：`;
+          html += dishes.map(d => `<span class="tag">${d.dish}<span class="price">￥${d.price}</span></span>`).join('');
+          html += '</div>';
+          totalEstimate += dishes.reduce((s, d) => s + d.price, 0);
+        }
+        preview.innerHTML = html;
+        countEl.textContent = `共 ${currentItems.length} 道菜 · 约￥${totalEstimate}`;
+        document.getElementById('spinBtn').disabled = false;
+      }
+
+      drawWheel();
+    }
+
+    // ============ 绘制转盘 ============
+    function drawWheel() {
+      const size = 840;
+      const cx = size / 2;
+      const cy = size / 2;
+      const radius = size / 2 - 10;
+
+      ctx.clearRect(0, 0, size, size);
+
+      if (currentItems.length === 0) {
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+        ctx.fillStyle = '#e0e0e0';
+        ctx.fill();
+        ctx.strokeStyle = '#ccc';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        ctx.fillStyle = '#aaa';
+        ctx.font = 'bold 28px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('请选择店铺', cx, cy);
+        return;
+      }
+
+      const n = currentItems.length;
+      const sliceAngle = (Math.PI * 2) / n;
+
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(currentAngle);
+
+      currentItems.forEach((item, i) => {
+        const startA = i * sliceAngle - Math.PI / 2;
+        const endA = startA + sliceAngle;
+
+        // 扇形
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.arc(0, 0, radius, startA, endA);
+        ctx.closePath();
+        ctx.fillStyle = COLORS[i % COLORS.length];
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // 文字
+        ctx.save();
+        ctx.rotate(startA + sliceAngle / 2);
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        const fontSize = n <= 10 ? 22 : n <= 20 ? 16 : 12;
+        const smallFont = Math.max(10, fontSize - 6);
+
+        // 菜名
+        const textR = radius * 0.68;
+        ctx.font = `bold ${fontSize}px sans-serif`;
+        ctx.fillStyle = '#333';
+        ctx.fillText(item.dish, textR, 0);
+
+        // 价格
+        if (n <= 15) {
+          const priceR = radius * 0.52;
+          ctx.font = `bold ${smallFont}px sans-serif`;
+          ctx.fillStyle = '#d63031';
+          ctx.fillText(`￥${item.price}`, priceR, 0);
+        }
+
+        // 店铺
+        if (n <= 12) {
+          const shopR = radius * 0.38;
+          ctx.font = `${Math.max(9, smallFont - 2)}px sans-serif`;
+          ctx.fillStyle = '#666';
+          ctx.fillText(item.shop, shopR, 0);
+        }
+
+        ctx.restore();
+      });
+
+      ctx.restore();
+
+      // 外圈
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius + 2, 0, Math.PI * 2);
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 5;
+      ctx.stroke();
+    }
+
+    // ============ 转盘动画 ============
+    function spin() {
+      if (isSpinning || currentItems.length === 0) return;
+      isSpinning = true;
+
+      const btn = document.getElementById('spinBtn');
+      btn.disabled = true;
+      btn.textContent = '...';
+
+      const resultEl = document.getElementById('resultText');
+      const priceEl = document.getElementById('resultPrice');
+      resultEl.className = 'result-text';
+      resultEl.textContent = '';
+      priceEl.textContent = '';
+
+      const winIndex = Math.floor(Math.random() * currentItems.length);
+      const n = currentItems.length;
+      const sliceAngle = (Math.PI * 2) / n;
+
+      const targetSliceCenter = winIndex * sliceAngle + sliceAngle / 2;
+      const minSpins = 8 + Math.floor(Math.random() * 5); // 8~12 圈
+
+      const startAngle = currentAngle;
+      const currentRemainder = ((startAngle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+      // 从当前位置顺时针到目标扇形中心的最短弧度（一定为正）
+      const toTarget = (targetSliceCenter - currentRemainder + 2 * Math.PI) % (2 * Math.PI);
+      // 加上额外整圈，保证至少转 minSpins 圈
+      const totalRotation = toTarget + minSpins * Math.PI * 2;
+      // 固定 5 秒，保证每次体感一致
+      const duration = 5000;
+      const startTime = performance.now();
+
+      function easeOutQuint(t) {
+        return 1 - Math.pow(1 - t, 5);
+      }
+
+      function animate(now) {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = easeOutQuint(progress);
+
+        currentAngle = startAngle + totalRotation * eased;
+        drawWheel();
+
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          isSpinning = false;
+          btn.disabled = false;
+          btn.textContent = '开始';
+
+          const winner = currentItems[winIndex];
+          resultEl.textContent = `${winner.dish}（${winner.shop}）`;
+          priceEl.textContent = `参考价 ￥${winner.price}`;
+          resultEl.className = 'result-text show';
+
+          addHistory(winner);
+        }
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    // ============ 历史记录 ============
+    function addHistory(item) {
+      history.unshift(item);
+      if (history.length > 50) history.pop();
+      renderHistory();
+    }
+
+    function renderHistory() {
+      const el = document.getElementById('historyList');
+      if (history.length === 0) {
+        el.innerHTML = '<div class="empty">还没有记录，快来试试吧！</div>';
+        return;
+      }
+
+      el.innerHTML = history.map((h, i) => `
+        <div class="history-item">
+          <span class="history-num">${i + 1}</span>
+          <span class="history-dish">${h.dish}</span>
+          <span class="history-price">￥${h.price}</span>
+          <span class="history-shop">${h.shop}</span>
+        </div>
+      `).join('');
+    }
+
+    function clearHistory() {
+      history = [];
+      renderHistory();
+    }
+
+    // ============ 初始化 ============
+    loadMenu();
+    drawWheel();
+  </script>
+</body>
+</html>

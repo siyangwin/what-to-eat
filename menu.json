@@ -1,0 +1,130 @@
+{
+  "shops": [
+    {
+      "name": "兰州拉面",
+      "items": [
+        {"name": "牛肉拉面", "price": 18},
+        {"name": "牛筋面", "price": 16},
+        {"name": "刀削面", "price": 16},
+        {"name": "炒面", "price": 15},
+        {"name": "拌面", "price": 13},
+        {"name": "盖浇面", "price": 18},
+        {"name": "兰州拌饭", "price": 16},
+        {"name": "牛肉泡馍", "price": 22}
+      ]
+    },
+    {
+      "name": "黄焖鸡",
+      "items": [
+        {"name": "黄焖鸡米饭", "price": 22},
+        {"name": "黄焖排骨", "price": 25},
+        {"name": "黄焖牛腩", "price": 28},
+        {"name": "黄焖鸡翅", "price": 20},
+        {"name": "香菇鸡", "price": 22},
+        {"name": "咖喱鸡", "price": 22}
+      ]
+    },
+    {
+      "name": "沙县小吃",
+      "items": [
+        {"name": "蒸饺", "price": 10},
+        {"name": "馄饨", "price": 12},
+        {"name": "拌面", "price": 10},
+        {"name": "扁肉", "price": 10},
+        {"name": "炒饭", "price": 13},
+        {"name": "煲仔饭", "price": 18},
+        {"name": "酸辣粉", "price": 12},
+        {"name": "乌鸡汤", "price": 20}
+      ]
+    },
+    {
+      "name": "麻辣烫",
+      "items": [
+        {"name": "麻辣烫", "price": 25},
+        {"name": "冒菜", "price": 22},
+        {"name": "酸辣粉", "price": 14},
+        {"name": "米线", "price": 16},
+        {"name": "螺蛳粉", "price": 18},
+        {"name": "砂锅", "price": 22},
+        {"name": "关东煮", "price": 20}
+      ]
+    },
+    {
+      "name": "麦当劳",
+      "items": [
+        {"name": "巨无霸", "price": 28},
+        {"name": "麦辣鸡腿堡", "price": 22},
+        {"name": "双层吉士汉堡", "price": 26},
+        {"name": "麦香鸡", "price": 18},
+        {"name": "薯条", "price": 13},
+        {"name": "麦乐鸡", "price": 15},
+        {"name": "板烧鸡腿堡", "price": 24}
+      ]
+    },
+    {
+      "name": "肯德基",
+      "items": [
+        {"name": "原味鸡", "price": 18},
+        {"name": "香辣鸡腿堡", "price": 22},
+        {"name": "劲脆鸡腿堡", "price": 22},
+        {"name": "蛋挞", "price": 10},
+        {"name": "薯条", "price": 13},
+        {"name": "鸡米花", "price": 15},
+        {"name": "鸡肉卷", "price": 20},
+        {"name": "饭类", "price": 24}
+      ]
+    },
+    {
+      "name": "日料",
+      "items": [
+        {"name": "寿司拼盘", "price": 48},
+        {"name": "三文鱼刺身", "price": 58},
+        {"name": "鳗鱼饭", "price": 42},
+        {"name": "牛肉饭", "price": 35},
+        {"name": "咖喱饭", "price": 28},
+        {"name": "乌冬面", "price": 26},
+        {"name": "拉面", "price": 28},
+        {"name": "便当", "price": 32}
+      ]
+    },
+    {
+      "name": "韩餐",
+      "items": [
+        {"name": "石锅拌饭", "price": 32},
+        {"name": "泡菜汤", "price": 22},
+        {"name": "大酱汤", "price": 22},
+        {"name": "辣炒年糕", "price": 18},
+        {"name": "部队火锅", "price": 58},
+        {"name": "炸鸡", "price": 35},
+        {"name": "紫菜包饭", "price": 15},
+        {"name": "冷面", "price": 22}
+      ]
+    },
+    {
+      "name": "粤菜",
+      "items": [
+        {"name": "叉烧饭", "price": 25},
+        {"name": "烧鹅饭", "price": 32},
+        {"name": "肠粉", "price": 15},
+        {"name": "虾饺", "price": 20},
+        {"name": "煲仔饭", "price": 28},
+        {"name": "云吞面", "price": 18},
+        {"name": "滑蛋饭", "price": 22},
+        {"name": "盐焗鸡", "price": 28}
+      ]
+    },
+    {
+      "name": "川菜",
+      "items": [
+        {"name": "回锅肉", "price": 28},
+        {"name": "麻婆豆腐", "price": 22},
+        {"name": "水煮鱼", "price": 48},
+        {"name": "宫保鸡丁", "price": 26},
+        {"name": "鱼香肉丝", "price": 24},
+        {"name": "毛血旺", "price": 38},
+        {"name": "担担面", "price": 18},
+        {"name": "口水鸡", "price": 26}
+      ]
+    }
+  ]
+}
