@@ -403,15 +403,22 @@
     // 强制检测屏幕宽度，转发/iframe场景下CSS媒体查询可能失效
     (function() {
       function checkMobile() {
-        var w = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
+        var w = window.innerWidth || document.documentElement.clientWidth;
         if (w <= 480) {
           document.body.classList.add('mobile-mode');
         } else {
           document.body.classList.remove('mobile-mode');
         }
       }
-      checkMobile();
-      window.addEventListener('resize', checkMobile);
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+          checkMobile();
+          window.addEventListener('resize', checkMobile);
+        });
+      } else {
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+      }
     })();
   </script>
 </head>
