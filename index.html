@@ -302,6 +302,15 @@
     }
     .editor-item .del-item-btn:hover { border-color: #ff4757; color: #ff4757; }
 
+    /* 排序按钮 */
+    .sort-btn {
+      padding: 4px 6px; border: 1px solid #ddd; border-radius: 4px;
+      background: transparent; color: #999; cursor: pointer; font-size: 0.8em;
+      line-height: 1; flex-shrink: 0;
+    }
+    .sort-btn:hover:not(:disabled) { border-color: #667eea; color: #667eea; }
+    .sort-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
     .add-item-btn {
       margin-top: 6px; padding: 4px 0; border: 1px dashed #ccc; border-radius: 4px;
       background: transparent; color: #999; cursor: pointer; font-size: 0.85em; width: 100%;
@@ -340,6 +349,19 @@
       canvas { width: 320px; height: 320px; }
       .center-btn { width: 64px; height: 64px; font-size: 0.95em; }
       .modal { padding: 20px; max-height: 90vh; }
+    }
+
+    @media (max-width: 480px) {
+      .editor-shop-header { flex-wrap: wrap; }
+      .editor-shop-header input[type="text"] { min-width: 0; flex-basis: 100%; order: 1; }
+      .editor-shop-header .sort-btn { order: 2; }
+      .editor-shop-header .del-shop-btn { order: 3; }
+      .editor-item { flex-wrap: wrap; }
+      .editor-item input[type="text"] { min-width: 0; flex-basis: 100%; order: 1; }
+      .editor-item input[type="number"] { flex-shrink: 0; width: 55px; order: 2; }
+      .editor-item .sort-btn { order: 3; }
+      .editor-item .del-item-btn { order: 4; }
+      .modal { padding: 14px; max-height: 95vh; }
     }
   </style>
 </head>
@@ -786,22 +808,30 @@
 
       body.innerHTML = editorData.map((shop, si) => {
         const safeShopName = escapeHTML(shop.name).replace(/"/g, '&quot;');
+        const isFirst = si === 0;
+        const isLast = si === editorData.length - 1;
         return `
         <div class="editor-shop">
           <div class="editor-shop-header">
             <input type="text" value="${safeShopName}" placeholder="店铺名"
               onchange="editorData[${si}].name=this.value" />
+            <button class="sort-btn" onclick="editorMoveShop(${si},-1)" ${isFirst ? 'disabled' : ''}>↑</button>
+            <button class="sort-btn" onclick="editorMoveShop(${si},1)" ${isLast ? 'disabled' : ''}>↓</button>
             <button class="del-shop-btn" onclick="editorDelShop(${si})">删除店铺</button>
           </div>
           <div class="editor-items">
             ${shop.items.map((item, ii) => {
               const safeItemName = escapeHTML(item.name).replace(/"/g, '&quot;');
+              const isItemFirst = ii === 0;
+              const isItemLast = ii === shop.items.length - 1;
               return `
               <div class="editor-item">
                 <input type="text" value="${safeItemName}" placeholder="菜名"
                   onchange="editorData[${si}].items[${ii}].name=this.value" />
                 <input type="number" value="${item.price}" placeholder="价格" min="0"
                   onchange="editorData[${si}].items[${ii}].price=Math.max(0,Number(this.value)||0)" />
+                <button class="sort-btn" onclick="editorMoveItem(${si},${ii},-1)" ${isItemFirst ? 'disabled' : ''}>↑</button>
+                <button class="sort-btn" onclick="editorMoveItem(${si},${ii},1)" ${isItemLast ? 'disabled' : ''}>↓</button>
                 <button class="del-item-btn" onclick="editorDelItem(${si},${ii})">x</button>
               </div>
             `}).join('')}
@@ -832,6 +862,25 @@
       if (editorData[si].items.length === 0) {
         editorData.splice(si, 1);
       }
+      renderEditor();
+    }
+
+    function editorMoveShop(si, dir) {
+      const ti = si + dir;
+      if (ti < 0 || ti >= editorData.length) return;
+      const tmp = editorData[si];
+      editorData[si] = editorData[ti];
+      editorData[ti] = tmp;
+      renderEditor();
+    }
+
+    function editorMoveItem(si, ii, dir) {
+      const ti = ii + dir;
+      const items = editorData[si].items;
+      if (ti < 0 || ti >= items.length) return;
+      const tmp = items[ii];
+      items[ii] = items[ti];
+      items[ti] = tmp;
       renderEditor();
     }
 
