@@ -400,24 +400,26 @@
     body.mobile-mode .editor-item .del-item-btn { order: 4 !important; }
   </style>
   <script>
-    // 强制检测屏幕宽度，转发/iframe场景下CSS媒体查询可能失效
+    // 强制检测屏幕宽度，转发/iframe/frameset场景下CSS媒体查询可能失效
     (function() {
       function checkMobile() {
         var w = window.innerWidth || document.documentElement.clientWidth;
+        // frameset/iframe中window.innerWidth可能不准，用screen.width兜底
+        if (!w || w > 2000) w = screen.width;
         if (w <= 480) {
           document.body.classList.add('mobile-mode');
         } else {
           document.body.classList.remove('mobile-mode');
         }
       }
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function() {
-          checkMobile();
-          window.addEventListener('resize', checkMobile);
-        });
-      } else {
+      function init() {
         checkMobile();
         window.addEventListener('resize', checkMobile);
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+      } else {
+        init();
       }
     })();
   </script>
