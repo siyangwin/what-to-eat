@@ -407,6 +407,13 @@
   </div>
 
   <script>
+    // ============ 工具函数 ============
+    function escapeHTML(str) {
+      const div = document.createElement('div');
+      div.appendChild(document.createTextNode(str));
+      return div.innerHTML;
+    }
+
     // ============ 数据 ============
     const STORAGE_KEY_MENU = 'lunch_wheel_menu';
     const STORAGE_KEY_HISTORY = 'lunch_wheel_history';
@@ -489,11 +496,13 @@
 
       el.innerHTML = shopData.map((shop, i) => {
         const totalPrice = shop.items.reduce((sum, it) => sum + (it.price || 0), 0);
-        const avgPrice = Math.round(totalPrice / shop.items.length);
+        const avgPrice = shop.items.length > 0 ? Math.round(totalPrice / shop.items.length) : 0;
+        const safeName = escapeHTML(shop.name);
+        const safeDataName = safeName.replace(/"/g, '&quot;');
         return `
-          <div class="shop-item" onclick="toggleShop('${shop.name}')">
-            <input type="checkbox" id="shop_${i}" data-name="${shop.name}" />
-            <label for="shop_${i}">${shop.name}</label>
+          <div class="shop-item" onclick="toggleShop(this.querySelector('input').dataset.name)">
+            <input type="checkbox" id="shop_${i}" data-name="${safeDataName}" />
+            <label for="shop_${i}">${safeName}</label>
             <span class="count">${shop.items.length}道 · 均${avgPrice}元</span>
           </div>
         `;
@@ -556,8 +565,8 @@
         let html = '';
         let totalEstimate = 0;
         for (const [shop, dishes] of Object.entries(shopGroups)) {
-          html += `<div style="margin-bottom:6px;"><b>${shop}</b>：`;
-          html += dishes.map(d => `<span class="tag">${d.dish}<span class="price">￥${d.price}</span></span>`).join('');
+          html += `<div style="margin-bottom:6px;"><b>${escapeHTML(shop)}</b>：`;
+          html += dishes.map(d => `<span class="tag">${escapeHTML(d.dish)}<span class="price">￥${d.price}</span></span>`).join('');
           html += '</div>';
           totalEstimate += dishes.reduce((s, d) => s + d.price, 0);
         }
@@ -648,12 +657,11 @@
     function getSliceAtPointer(finalAngle) {
       const n = currentItems.length;
       const sliceAngle = (Math.PI * 2) / n;
-      // 指针在顶部，canvas.rotate(θ) 后顶部对应的本地角度 = -π/2 - θ
-      const localAngle = -Math.PI / 2 - finalAngle;
-      // 扇形 i 的本地中心角 = (i + 0.5) * sliceAngle - π/2
-      // 反推 i = floor( (localAngle + π/2) / sliceAngle + 0.5 )
-      // 用正向取模避免 JS 负数取模问题
-      const raw = (localAngle + Math.PI / 2) / sliceAngle + 0.5;
+      // 指针固定在顶部(全局 -π/2)，canvas.rotate(θ) 后
+      // 全局角度 -π/2 对应本地角度 = -π/2 - θ
+      // 扇形 i 的本地范围: [i*s - π/2, (i+1)*s - π/2)
+      // 化简得 i = floor(-θ / s)
+      const raw = -finalAngle / sliceAngle;
       const idx = ((Math.floor(raw) % n) + n) % n;
       return idx;
     }
@@ -741,11 +749,11 @@
         <div class="history-item">
           <span class="history-num">${i + 1}</span>
           <div class="history-info">
-            <div class="history-dish">${h.dish}</div>
+            <div class="history-dish">${escapeHTML(h.dish)}</div>
             <div class="history-time">${formatTime(h.time)}</div>
           </div>
           <span class="history-price">￥${h.price}</span>
-          <span class="history-shop">${h.shop}</span>
+          <span class="history-shop">${escapeHTML(h.shop)}</span>
         </div>
       `).join('');
     }
@@ -776,27 +784,31 @@
         return;
       }
 
-      body.innerHTML = editorData.map((shop, si) => `
+      body.innerHTML = editorData.map((shop, si) => {
+        const safeShopName = escapeHTML(shop.name).replace(/"/g, '&quot;');
+        return `
         <div class="editor-shop">
           <div class="editor-shop-header">
-            <input type="text" value="${shop.name}" placeholder="店铺名"
+            <input type="text" value="${safeShopName}" placeholder="店铺名"
               onchange="editorData[${si}].name=this.value" />
             <button class="del-shop-btn" onclick="editorDelShop(${si})">删除店铺</button>
           </div>
           <div class="editor-items">
-            ${shop.items.map((item, ii) => `
+            ${shop.items.map((item, ii) => {
+              const safeItemName = escapeHTML(item.name).replace(/"/g, '&quot;');
+              return `
               <div class="editor-item">
-                <input type="text" value="${item.name}" placeholder="菜名"
+                <input type="text" value="${safeItemName}" placeholder="菜名"
                   onchange="editorData[${si}].items[${ii}].name=this.value" />
                 <input type="number" value="${item.price}" placeholder="价格" min="0"
-                  onchange="editorData[${si}].items[${ii}].price=Number(this.value)" />
+                  onchange="editorData[${si}].items[${ii}].price=Math.max(0,Number(this.value)||0)" />
                 <button class="del-item-btn" onclick="editorDelItem(${si},${ii})">x</button>
               </div>
-            `).join('')}
+            `}).join('')}
           </div>
           <button class="add-item-btn" onclick="editorAddItem(${si})">+ 添加菜品</button>
         </div>
-      `).join('');
+      `}).join('');
     }
 
     function editorAddShop() {
@@ -831,10 +843,10 @@
           name: s.name.trim(),
           items: s.items
             .filter(it => it.name.trim())
-            .map(it => ({ name: it.name.trim(), price: Number(it.price) || 0 }))
+            .map(it => ({ name: it.name.trim(), price: Math.max(0, Number(it.price) || 0) }))
         }));
       saveMenuToLocal(shopData);
-      selectedShops = [];
+      selectedShops = shopData.map(s => s.name);
       renderShopList();
       closeEditor();
     }
