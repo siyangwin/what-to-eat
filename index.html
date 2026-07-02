@@ -403,9 +403,8 @@
     // 强制检测屏幕宽度，转发/iframe/frameset场景下CSS媒体查询可能失效
     (function() {
       function checkMobile() {
-        var w = window.innerWidth || document.documentElement.clientWidth;
-        // frameset/iframe中window.innerWidth可能不准，用screen.width兜底
-        if (!w || w > 2000) w = screen.width;
+        // 优先用screen.width（设备物理屏幕），frameset/iframe中window.innerWidth不准
+        var w = screen.width || window.innerWidth || document.documentElement.clientWidth;
         if (w <= 480) {
           document.body.classList.add('mobile-mode');
         } else {
