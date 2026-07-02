@@ -376,7 +376,44 @@
       .editor-item .del-item-btn { order: 4; }
       .modal { padding: 14px; max-height: 95vh; }
     }
+
+    /* JS 强制移动端样式（兜底转发/iframe场景） */
+    body.mobile-mode { padding: 8px !important; }
+    body.mobile-mode h1 { font-size: 1.3em !important; margin-bottom: 10px !important; }
+    body.mobile-mode .container { flex-direction: column !important; align-items: center !important; gap: 12px !important; }
+    body.mobile-mode .panel { width: 100% !important; max-width: 100% !important; min-width: auto !important; padding: 12px !important; }
+    body.mobile-mode .panel h2 { font-size: 1em !important; }
+    body.mobile-mode .wheel-section { margin-top: 14px !important; }
+    body.mobile-mode .wheel-wrapper { width: 280px !important; height: 280px !important; }
+    body.mobile-mode canvas { width: 280px !important; height: 280px !important; }
+    body.mobile-mode .center-btn { width: 56px !important; height: 56px !important; font-size: 0.85em !important; }
+    body.mobile-mode .result-text { font-size: 1.1em !important; }
+    body.mobile-mode .modal { padding: 14px !important; max-height: 95vh !important; }
+    body.mobile-mode .editor-shop-header { flex-wrap: wrap !important; }
+    body.mobile-mode .editor-shop-header input[type="text"] { min-width: 0 !important; flex-basis: 100% !important; order: 1 !important; }
+    body.mobile-mode .editor-shop-header .sort-btn { order: 2 !important; }
+    body.mobile-mode .editor-shop-header .del-shop-btn { order: 3 !important; }
+    body.mobile-mode .editor-item { flex-wrap: wrap !important; }
+    body.mobile-mode .editor-item input[type="text"] { min-width: 0 !important; flex-basis: 100% !important; order: 1 !important; }
+    body.mobile-mode .editor-item input[type="number"] { flex-shrink: 0 !important; width: 55px !important; order: 2 !important; }
+    body.mobile-mode .editor-item .sort-btn { order: 3 !important; }
+    body.mobile-mode .editor-item .del-item-btn { order: 4 !important; }
   </style>
+  <script>
+    // 强制检测屏幕宽度，转发/iframe场景下CSS媒体查询可能失效
+    (function() {
+      function checkMobile() {
+        var w = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
+        if (w <= 480) {
+          document.body.classList.add('mobile-mode');
+        } else {
+          document.body.classList.remove('mobile-mode');
+        }
+      }
+      checkMobile();
+      window.addEventListener('resize', checkMobile);
+    })();
+  </script>
 </head>
 <body>
   <h1>今天吃什么？</h1>
