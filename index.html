@@ -142,6 +142,18 @@
     /* 转盘区域 */
     .wheel-section { display: flex; flex-direction: column; align-items: center; }
 
+    .mode-toggle {
+      display: inline-flex; gap: 4px; margin-bottom: 30px;
+      background: rgba(255,255,255,0.25); padding: 4px; border-radius: 10px;
+    }
+    .mode-btn {
+      padding: 6px 18px; border: none; border-radius: 7px; cursor: pointer;
+      background: transparent; color: #fff; font-size: 0.95em; font-weight: bold;
+      transition: all 0.2s; opacity: 0.8;
+    }
+    .mode-btn.active { background: #fff; color: #667eea; opacity: 1; }
+    .mode-btn:hover:not(.active) { opacity: 1; }
+
     .wheel-wrapper { position: relative; width: 420px; height: 420px; }
 
     canvas {
@@ -222,6 +234,14 @@
     }
 
     .history-shop { font-size: 0.8em; color: #999; white-space: nowrap; }
+
+    .hist-badge {
+      display: inline-block; font-size: 0.7em; font-weight: bold;
+      padding: 1px 6px; border-radius: 4px; margin-right: 6px;
+      vertical-align: middle;
+    }
+    .hist-badge.dish { background: #eef; color: #667eea; }
+    .hist-badge.shop { background: #e6f9ec; color: #2bb673; }
 
     .clear-btn {
       margin-top: 12px; width: 100%; padding: 8px;
@@ -449,6 +469,10 @@
 
     <!-- 中间: 转盘 -->
     <div class="wheel-section">
+      <div class="mode-toggle">
+        <button class="mode-btn active" id="modeDishBtn" onclick="setSpinMode('dish')">转菜品</button>
+        <button class="mode-btn" id="modeShopBtn" onclick="setSpinMode('shop')">转店铺</button>
+      </div>
       <div class="wheel-wrapper">
         <canvas id="wheelCanvas" width="840" height="840"></canvas>
         <div class="pointer"></div>
@@ -494,6 +518,28 @@
       return div.innerHTML;
     }
 
+    // 校验菜单结构并去重店铺名（selectedShops 用名字当 key，重名会导致勾选串台）
+    function normalizeMenu(data) {
+      if (!Array.isArray(data)) return [];
+      const seen = new Set();
+      return data
+        .filter(s => s && typeof s.name === 'string' && Array.isArray(s.items))
+        .map(s => {
+          let name = s.name.trim();
+          if (!name) return null;
+          // 同名店铺加后缀，避免 selectedShops 串台
+          let base = name, k = 2;
+          while (seen.has(name)) { name = `${base}(${k})`; k++; }
+          seen.add(name);
+          const items = s.items
+            .filter(it => it && typeof it.name === 'string' && it.name.trim())
+            .map(it => ({ name: it.name.trim(), price: Math.max(0, Number(it.price) || 0) }));
+          return { name, items };
+        })
+        .filter(Boolean)
+        .filter(s => s.items.length > 0);
+    }
+
     // ============ 数据 ============
     const STORAGE_KEY_MENU = 'lunch_wheel_menu';
     const STORAGE_KEY_HISTORY = 'lunch_wheel_history';
@@ -504,6 +550,8 @@
     let history = [];
     let isSpinning = false;
     let currentAngle = 0;
+    let spinMode = 'dish';      // 'dish' | 'shop'
+    let wheelEntries = [];      // 当前转盘条目：{ label, sub, price, type, shop, dish }
 
     const canvas = document.getElementById('wheelCanvas');
     const ctx = canvas.getContext('2d');
@@ -540,22 +588,23 @@
 
     // ============ 加载菜单 ============
     async function loadMenu() {
-      // 优先读本地缓存
+      // 优先读本地缓存（校验结构，无效则回退到 fetch）
       const cached = loadMenuFromLocal();
-      if (cached && cached.length > 0) {
-        shopData = cached;
+      const normalized = normalizeMenu(cached);
+      if (normalized.length > 0) {
+        shopData = normalized;
         history = loadHistoryFromLocal();
         renderShopList();
         renderHistory();
         return;
       }
 
-      // 没有缓存，加载默认菜单
+      // 缓存为空或无效，加载默认菜单
       try {
         const resp = await fetch('menu.json?t=' + Date.now());
         if (!resp.ok) throw new Error('无法加载菜单文件');
         const data = await resp.json();
-        shopData = data.shops || [];
+        shopData = normalizeMenu(data.shops);
         saveMenuToLocal(shopData);
         history = loadHistoryFromLocal();
         renderShopList();
@@ -635,7 +684,6 @@
       if (currentItems.length === 0) {
         preview.innerHTML = '<div class="empty">请至少选择一个店铺</div>';
         countEl.textContent = '';
-        document.getElementById('spinBtn').disabled = true;
       } else {
         const shopGroups = {};
         currentItems.forEach(item => {
@@ -652,8 +700,38 @@
         }
         preview.innerHTML = html;
         countEl.textContent = `共 ${currentItems.length} 道菜 · 约￥${totalEstimate}`;
-        document.getElementById('spinBtn').disabled = false;
       }
+      buildWheelEntries();
+      document.getElementById('spinBtn').disabled = wheelEntries.length === 0;
+      drawWheel();
+    }
+
+    // ============ 构建转盘条目 & 模式切换 ============
+    function buildWheelEntries() {
+      if (spinMode === 'shop') {
+        wheelEntries = selectedShops.map(name => ({
+          label: name, sub: null, price: null, type: 'shop', shop: name, dish: null
+        }));
+      } else {
+        wheelEntries = currentItems.map(it => ({
+          label: it.dish, sub: it.shop, price: it.price, type: 'dish', shop: it.shop, dish: it.dish
+        }));
+      }
+    }
+
+    function setSpinMode(mode) {
+      if (mode === spinMode || isSpinning) return;
+      spinMode = mode;
+      document.getElementById('modeDishBtn').classList.toggle('active', mode === 'dish');
+      document.getElementById('modeShopBtn').classList.toggle('active', mode === 'shop');
+      currentAngle = 0;
+      const resultEl = document.getElementById('resultText');
+      const priceEl = document.getElementById('resultPrice');
+      resultEl.className = 'result-text';
+      resultEl.textContent = '';
+      priceEl.textContent = '';
+      buildWheelEntries();
+      document.getElementById('spinBtn').disabled = wheelEntries.length === 0;
       drawWheel();
     }
 
@@ -664,7 +742,7 @@
       const radius = size / 2 - 10;
       ctx.clearRect(0, 0, size, size);
 
-      if (currentItems.length === 0) {
+      if (wheelEntries.length === 0) {
         ctx.beginPath();
         ctx.arc(cx, cy, radius, 0, Math.PI * 2);
         ctx.fillStyle = '#e0e0e0';
@@ -680,13 +758,13 @@
         return;
       }
 
-      const n = currentItems.length;
+      const n = wheelEntries.length;
       const sliceAngle = (Math.PI * 2) / n;
       ctx.save();
       ctx.translate(cx, cy);
       ctx.rotate(currentAngle);
 
-      currentItems.forEach((item, i) => {
+      wheelEntries.forEach((entry, i) => {
         const startA = i * sliceAngle - Math.PI / 2;
         const endA = startA + sliceAngle;
         ctx.beginPath();
@@ -708,18 +786,18 @@
 
         ctx.font = `bold ${fontSize}px sans-serif`;
         ctx.fillStyle = '#333';
-        ctx.fillText(item.dish, radius * 0.68, 0);
+        ctx.fillText(entry.label, radius * 0.68, 0);
 
-        if (n <= 15) {
+        if (entry.price != null && n <= 15) {
           ctx.font = `bold ${smallFont}px sans-serif`;
           ctx.fillStyle = '#d63031';
-          ctx.fillText(`￥${item.price}`, radius * 0.52, 0);
+          ctx.fillText(`￥${entry.price}`, radius * 0.52, 0);
         }
 
-        if (n <= 12) {
+        if (entry.sub && n <= 12) {
           ctx.font = `${Math.max(9, smallFont - 2)}px sans-serif`;
           ctx.fillStyle = '#666';
-          ctx.fillText(item.shop, radius * 0.38, 0);
+          ctx.fillText(entry.sub, radius * 0.38, 0);
         }
 
         ctx.restore();
@@ -735,7 +813,7 @@
 
     // ============ 根据最终角度推算指针命中的扇形 ============
     function getSliceAtPointer(finalAngle) {
-      const n = currentItems.length;
+      const n = wheelEntries.length;
       const sliceAngle = (Math.PI * 2) / n;
       // 指针固定在顶部(全局 -π/2)，canvas.rotate(θ) 后
       // 全局角度 -π/2 对应本地角度 = -π/2 - θ
@@ -748,7 +826,7 @@
 
     // ============ 转盘动画 ============
     function spin() {
-      if (isSpinning || currentItems.length === 0) return;
+      if (isSpinning || wheelEntries.length === 0) return;
       isSpinning = true;
       const btn = document.getElementById('spinBtn');
       btn.disabled = true;
@@ -760,7 +838,7 @@
       resultEl.textContent = '';
       priceEl.textContent = '';
 
-      const n = currentItems.length;
+      const n = wheelEntries.length;
       const minSpins = 8 + Math.floor(Math.random() * 5);
       const randomOffset = Math.random() * Math.PI * 2;
 
@@ -786,9 +864,14 @@
 
           // 停下后，根据最终角度反算命中的扇形
           const winIdx = getSliceAtPointer(currentAngle);
-          const winner = currentItems[winIdx];
-          resultEl.textContent = `${winner.dish}（${winner.shop}）`;
-          priceEl.textContent = `参考价 ￥${winner.price}`;
+          const winner = wheelEntries[winIdx];
+          if (winner.type === 'shop') {
+            resultEl.textContent = `${winner.shop}`;
+            priceEl.textContent = '';
+          } else {
+            resultEl.textContent = `${winner.dish}（${winner.shop}）`;
+            priceEl.textContent = `参考价 ￥${winner.price}`;
+          }
           resultEl.className = 'result-text show';
           addHistory(winner);
         }
@@ -825,17 +908,26 @@
         el.innerHTML = '<div class="empty">还没有记录，快来试试吧！</div>';
         return;
       }
-      el.innerHTML = history.map((h, i) => `
+      el.innerHTML = history.map((h, i) => {
+        const isShop = (h.type || 'dish') === 'shop';
+        const badge = isShop
+          ? '<span class="hist-badge shop">店铺</span>'
+          : '<span class="hist-badge dish">菜品</span>';
+        const mainText = isShop ? escapeHTML(h.shop) : escapeHTML(h.dish);
+        const priceCol = isShop ? '' : `<span class="history-price">￥${h.price}</span>`;
+        const shopCol = isShop ? '' : `<span class="history-shop">${escapeHTML(h.shop)}</span>`;
+        return `
         <div class="history-item">
           <span class="history-num">${i + 1}</span>
           <div class="history-info">
-            <div class="history-dish">${escapeHTML(h.dish)}</div>
+            <div class="history-dish">${badge}${mainText}</div>
             <div class="history-time">${formatTime(h.time)}</div>
           </div>
-          <span class="history-price">￥${h.price}</span>
-          <span class="history-shop">${escapeHTML(h.shop)}</span>
+          ${priceCol}
+          ${shopCol}
         </div>
-      `).join('');
+      `;
+      }).join('');
     }
 
     function clearHistory() {
@@ -943,15 +1035,8 @@
     }
 
     function editorSave() {
-      // 过滤空数据
-      shopData = editorData
-        .filter(s => s.name.trim() && s.items.length > 0)
-        .map(s => ({
-          name: s.name.trim(),
-          items: s.items
-            .filter(it => it.name.trim())
-            .map(it => ({ name: it.name.trim(), price: Math.max(0, Number(it.price) || 0) }))
-        }));
+      // 过滤空数据 + 校验去重
+      shopData = normalizeMenu(editorData);
       saveMenuToLocal(shopData);
       selectedShops = shopData.map(s => s.name);
       renderShopList();
@@ -966,7 +1051,7 @@
       fetch('menu.json?t=' + Date.now())
         .then(r => r.json())
         .then(data => {
-          shopData = data.shops || [];
+          shopData = normalizeMenu(data.shops);
           saveMenuToLocal(shopData);
           closeEditor();
           selectedShops = [];
